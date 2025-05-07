@@ -1,7 +1,7 @@
 {
     "name": "Offline Todo",
     "short_name": "Todo",
-    "start_url": "/",
+    "start_url": "/Todo-pwa/",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#2196F3",
