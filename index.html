@@ -1,140 +1,203 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#4CAF50" />
-  <link rel="manifest" href="manifest.json" />
-<meta name="theme-color" content="#4CAF50" />
-<link rel="apple-touch-icon" href="todo.jpg" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline Todo PWA</title>
+    <link rel="manifest" href="/manifest.json">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
 
-  <link rel="stylesheet" href="style.css" />
-  <title>Todo PWA</title>
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        #appLogo {
+            width: 100px;
+            height: 100px;
+            border-radius: 15px;
+        }
+
+        #todoInput {
+            width: 70%;
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        #addBtn {
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        #todoList {
+            list-style: none;
+            padding: 0;
+        }
+
+        .todoItem {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .deleteBtn {
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        #installBtn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Todo List</h1>
-    <form id="todo-form">
-      <input type="text" id="todo-input" placeholder="Enter a new task" required />
-      <button type="submit">Add</button>
-    </form>
-    <ul id="todo-list"></ul>
-  </div>
+    <header>
+        <img src="todo.jpg" alt="Todo Logo" id="appLogo">
+        <h1>Offline Todo List</h1>
+    </header>
 
-  <script>
-    let db;
+    <div>
+        <input type="text" id="todoInput" placeholder="Add new todo...">
+        <button id="addBtn">Add</button>
+    </div>
 
-    document.addEventListener('DOMContentLoaded', () => {
-      initDB();
-      document.getElementById('todo-form').addEventListener('submit', addTodo);
-    });
+    <ul id="todoList"></ul>
 
-    function initDB() {
-      const request = indexedDB.open('todoDB', 1);
+    <button id="installBtn" hidden>Install App</button>
 
-      request.onerror = () => {
-        console.error('Database failed to open');
-      };
+    <script>
+        // Initialize database
+        let db;
+        const DB_NAME = 'TodoDB';
+        const STORE_NAME = 'todos';
 
-      request.onsuccess = () => {
-        db = request.result;
-        displayTodos();
-      };
+        const initDB = () => {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, 1);
 
-      request.onupgradeneeded = (e) => {
-        db = e.target.result;
-        if (!db.objectStoreNames.contains('todos')) {
-          const objectStore = db.createObjectStore('todos', { keyPath: 'id', autoIncrement: true });
-          objectStore.createIndex('task', 'task', { unique: false });
-          objectStore.createIndex('completed', 'completed', { unique: false });
+                request.onupgradeneeded = (e) => {
+                    db = e.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                    }
+                };
+
+                request.onsuccess = (e) => {
+                    db = e.target.result;
+                    resolve();
+                };
+
+                request.onerror = (e) => {
+                    reject(e.target.error);
+                };
+            });
+        };
+
+        // CRUD Operations
+        const addTodo = async (text) => {
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+            await store.add({
+                id: Date.now(),
+                text: text,
+                completed: false
+            });
+            renderTodos();
+        };
+
+        const deleteTodo = async (id) => {
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+            await store.delete(id);
+            renderTodos();
+        };
+
+        const getTodos = async () => {
+            return new Promise((resolve) => {
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result);
+            });
+        };
+
+        // UI Rendering
+        const renderTodos = async () => {
+            const todos = await getTodos();
+            const list = document.getElementById('todoList');
+            list.innerHTML = todos.map(todo => `
+                <li class="todoItem">
+                    ${todo.text}
+                    <button class="deleteBtn" onclick="deleteTodo(${todo.id})">Delete</button>
+                </li>
+            `).join('');
+        };
+
+        // Event Listeners
+        document.getElementById('addBtn').addEventListener('click', () => {
+            const input = document.getElementById('todoInput');
+            if (input.value.trim()) {
+                addTodo(input.value.trim());
+                input.value = '';
+            }
+        });
+
+        // PWA Installation
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installBtn').hidden = false;
+        });
+
+        document.getElementById('installBtn').addEventListener('click', async () => {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                document.getElementById('installBtn').hidden = true;
+            }
+        });
+
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => console.log('SW registered'))
+                    .catch(err => console.log('SW registration failed'));
+            });
         }
-      };
-    }
 
-    function addTodo(e) {
-      e.preventDefault();
-      const input = document.getElementById('todo-input');
-      const task = input.value.trim();
-      if (!task) return;
-
-      const newItem = { task, completed: false };
-      const transaction = db.transaction(['todos'], 'readwrite');
-      const store = transaction.objectStore('todos');
-      const request = store.add(newItem);
-
-      request.onsuccess = () => {
-        input.value = '';
-        displayTodos();
-      };
-
-      request.onerror = () => {
-        console.error('Add failed');
-      };
-    }
-
-    function displayTodos() {
-      const list = document.getElementById('todo-list');
-      list.innerHTML = '';
-
-      const transaction = db.transaction(['todos'], 'readonly');
-      const store = transaction.objectStore('todos');
-      const request = store.openCursor();
-
-      request.onsuccess = () => {
-        const cursor = request.result;
-        if (cursor) {
-          const li = document.createElement('li');
-          li.className = cursor.value.completed ? 'completed' : '';
-          li.textContent = cursor.value.task;
-
-          const actions = document.createElement('div');
-          actions.className = 'actions';
-
-          const toggleBtn = document.createElement('button');
-          toggleBtn.textContent = cursor.value.completed ? 'Undo' : 'Done';
-          toggleBtn.addEventListener('click', () => toggleComplete(cursor.value.id, !cursor.value.completed));
-
-          const deleteBtn = document.createElement('button');
-          deleteBtn.textContent = 'Delete';
-          deleteBtn.addEventListener('click', () => deleteTodo(cursor.value.id));
-
-          actions.appendChild(toggleBtn);
-          actions.appendChild(deleteBtn);
-          li.appendChild(actions);
-          list.appendChild(li);
-
-          cursor.continue();
-        }
-      };
-    }
-
-    function toggleComplete(id, completed) {
-      const transaction = db.transaction(['todos'], 'readwrite');
-      const store = transaction.objectStore('todos');
-      const request = store.get(id);
-
-      request.onsuccess = () => {
-        const data = request.result;
-        data.completed = completed;
-        store.put(data);
-        transaction.oncomplete = () => displayTodos();
-      };
-    }
-
-    function deleteTodo(id) {
-      const transaction = db.transaction(['todos'], 'readwrite');
-      const store = transaction.objectStore('todos');
-      store.delete(id);
-      transaction.oncomplete = () => displayTodos();
-    }
-
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js')
-          .then(reg => console.log('Service Worker Registered:', reg))
-          .catch(err => console.error('Service Worker Failed:', err));
-      });
-    }
-  </script>
+        // Initialize App
+        (async () => {
+            await initDB();
+            await renderTodos();
+        })();
+    </script>
 </body>
 </html>

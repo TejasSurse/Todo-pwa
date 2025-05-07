@@ -1,21 +1,15 @@
 {
-    "name": "Todo PWA App",
-    "short_name": "TodoApp",
-    "start_url": "/Todo-pwa/",
+    "name": "Offline Todo",
+    "short_name": "Todo",
+    "start_url": "/",
     "display": "standalone",
     "background_color": "#ffffff",
-    "theme_color": "#4CAF50",
+    "theme_color": "#2196F3",
     "icons": [
-      {
-        "src": "todo.jpg",
-        "sizes": "192x192",
-        "type": "image/jpeg"
-      },
-      {
-        "src": "todo.jpg",
-        "sizes": "512x512",
-        "type": "image/jpeg"
-      }
+        {
+            "src": "todo.jpg",
+            "sizes": "192x192",
+            "type": "image/jpeg"
+        }
     ]
-  }
-  
+}
