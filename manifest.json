@@ -1,7 +1,7 @@
 {
     "name": "Todo PWA App",
     "short_name": "TodoApp",
-    "start_url": "./index.html",
+    "start_url": "/Todo-pwa/",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#4CAF50",
