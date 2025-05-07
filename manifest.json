@@ -1,6 +1,6 @@
 {
-    "name": "Todo PWA",
-    "short_name": "Todo",
+    "name": "Todo PWA App",
+    "short_name": "TodoApp",
     "start_url": "./index.html",
     "display": "standalone",
     "background_color": "#ffffff",
@@ -9,11 +9,6 @@
       {
         "src": "todo.jpg",
         "sizes": "192x192",
-        "type": "image/jpeg"
-      },
-      {
-        "src": "todo.jpg",
-        "sizes": "256x256",
         "type": "image/jpeg"
       },
       {
